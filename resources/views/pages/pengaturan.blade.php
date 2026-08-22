@@ -100,7 +100,58 @@
                 </div>
             </div>
         </form>
+        <!-- Card 4: API Access -->
+        <div class="bg-surface-card border border-border-subtle rounded-lg p-6 shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-label-lg font-label-lg text-primary font-bold">Akses API Pihak Ketiga</h3>
+                    <p class="text-xs text-on-surface-variant mt-1">Buat token API untuk memberikan akses sistem lain ke data Pegawai (Data Dokumen tetap dirahasiakan).</p>
+                </div>
+                <form action="{{ route('pengaturan.api.token') }}" method="POST">
+                    @csrf
+                    <button type="submit" class="bg-primary text-on-primary h-9 px-4 rounded text-label-sm font-label-sm hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-1">
+                        <span class="material-symbols-outlined text-[16px]">key</span> Generate Token Baru
+                    </button>
+                </form>
+            </div>
+            
+            @if(session('api_token'))
+            <div class="bg-status-warning/10 border border-status-warning/30 p-4 rounded-lg mt-4">
+                <div class="text-sm font-bold text-status-warning mb-2 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px]">warning</span> Simpan token ini sekarang. Token tidak akan ditampilkan lagi!
+                </div>
+                <div class="bg-surface rounded border border-border-subtle p-3 flex justify-between items-center">
+                    <code class="text-xs text-on-surface break-all">{{ session('api_token') }}</code>
+                </div>
+            </div>
+            @endif
 
+            @if(auth()->user()->tokens->count() > 0)
+            <div class="mt-4 border-t border-border-subtle pt-4">
+                <div class="text-body-sm font-semibold text-on-surface mb-3">Token Aktif</div>
+                <div class="space-y-2">
+                    @foreach(auth()->user()->tokens as $token)
+                    <div class="flex items-center justify-between bg-surface rounded p-2 border border-border-subtle">
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-primary text-[18px]">api</span>
+                            <div>
+                                <div class="text-xs font-semibold text-on-surface">{{ $token->name }}</div>
+                                <div class="text-[10px] text-on-surface-variant">Dibuat: {{ $token->created_at->format('d M Y H:i') }}</div>
+                            </div>
+                        </div>
+                        <form action="{{ route('pengaturan.api.token.delete', $token->id) }}" method="POST" onsubmit="return confirm('Cabut token ini?')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="text-status-error hover:bg-status-error/10 p-1.5 rounded transition-colors" title="Cabut Token">
+                                <span class="material-symbols-outlined text-[16px]">delete</span>
+                            </button>
+                        </form>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+        </div>
         <!-- Submit Settings -->
         <div class="flex justify-end pt-4">
             <button class="bg-primary text-on-primary h-12 px-6 rounded text-label-md font-label-md hover:bg-primary/90 transition-colors shadow-sm" onclick="alert('Pengaturan berhasil disimpan!')">

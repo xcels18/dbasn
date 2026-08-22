@@ -13,7 +13,11 @@
     <style>
         body { 
             font-family: 'Plus Jakarta Sans', sans-serif; 
-            background-color: #030712; /* Tailwind gray-950 */
+            background-color: #030712; /* Tailwind gray-950 fallback */
+            background-image: linear-gradient(rgba(3, 7, 18, 0.85), rgba(3, 7, 18, 0.95)), url('{{ asset("bg-mulia.jpg") }}');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
             color: #f9fafb; 
         }
         h1, h2, h3 {

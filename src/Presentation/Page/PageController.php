@@ -103,4 +103,25 @@ class PageController extends Controller
 
         return redirect()->back()->with('success', 'Kredensial admin berhasil diperbarui.');
     }
+
+    public function generateApiToken(\Illuminate\Http\Request $request)
+    {
+        $user = \Illuminate\Support\Facades\Auth::user();
+        $tokenName = 'Token-App-' . now()->format('YmdHi');
+        $token = $user->createToken($tokenName);
+
+        // Menghilangkan prefix ID (misal "1|") agar token terlihat bersih
+        $plainToken = explode('|', $token->plainTextToken, 2)[1] ?? $token->plainTextToken;
+
+        return redirect()->route('pengaturan')->with('api_token', $plainToken)
+            ->with('success', 'Token API berhasil dibuat. Silakan salin sekarang!');
+    }
+
+    public function deleteApiToken($id)
+    {
+        $user = \Illuminate\Support\Facades\Auth::user();
+        $user->tokens()->where('id', $id)->delete();
+        
+        return redirect()->route('pengaturan')->with('success', 'Token API berhasil dicabut.');
+    }
 }

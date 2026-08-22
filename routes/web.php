@@ -38,6 +38,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/laporan/export-excel', [PageController::class, 'exportExcelNominatif'])->name('laporan.export');
     Route::get('/pengaturan', [PageController::class, 'pengaturan'])->name('pengaturan');
     Route::post('/pengaturan/admin', [PageController::class, 'updateAdmin'])->name('pengaturan.admin');
+    Route::post('/pengaturan/api-token', [PageController::class, 'generateApiToken'])->name('pengaturan.api.token');
+    Route::delete('/pengaturan/api-token/{id}', [PageController::class, 'deleteApiToken'])->name('pengaturan.api.token.delete');
 
-    Route::get('/api/pegawai', [PegawaiController::class, 'apiIndex'])->name('api.pegawai');
 });
