@@ -28,11 +28,11 @@
     <div class="w-full max-w-md px-4 relative z-10">
         <!-- Logo -->
         <div class="flex justify-center mb-8">
-            <a href="/" class="flex items-center gap-3 group">
-                <div class="w-16 h-auto drop-shadow-md flex items-center justify-center transition-all duration-300 transform group-hover:scale-105">
-                    <img src="{{ asset('logo_puncak_jaya.png') }}" alt="Logo Puncak Jaya" class="w-full h-auto">
+            <a href="/" class="flex flex-col items-center gap-4 group">
+                <div class="w-24 h-auto drop-shadow-md flex items-center justify-center transition-all duration-300 transform group-hover:scale-105">
+                    <img src="{{ asset('logo-inspektorat.png') }}" alt="Logo Inspektorat Puncak Jaya" class="w-full h-auto object-contain">
                 </div>
-                <div class="flex flex-col">
+                <div class="flex flex-col items-center text-center">
                     <span class="font-bold text-3xl tracking-tight text-white leading-none uppercase">Inspektorat</span>
                     <span class="text-xs tracking-widest text-sky-400 font-semibold uppercase mt-1">Puncak Jaya</span>
                 </div>

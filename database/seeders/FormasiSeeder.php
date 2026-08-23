@@ -12,6 +12,8 @@ class FormasiSeeder extends Seeder
      */
     public function run(): void
     {
+        DB::table('formasis')->truncate();
+
         DB::table('formasis')->insert([
             [
                 'nama_jabatan' => 'Auditor Ahli Madya',

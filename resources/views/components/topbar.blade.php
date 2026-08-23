@@ -23,10 +23,43 @@
 <span class="material-symbols-outlined text-[20px]">help_outline</span>
 </button>
 </div>
-<!-- Avatar -->
-<div class="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant overflow-hidden ml-2 flex items-center justify-center text-on-surface-variant">
-<span class="material-symbols-outlined text-[20px]">person</span>
+<!-- Avatar with Dropdown -->
+<div class="relative ml-2">
+    <button id="profile-btn" class="w-8 h-8 rounded-full bg-surface-container-high border border-outline-variant overflow-hidden flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors focus:outline-none focus:ring-2 focus:ring-primary">
+        <span class="material-symbols-outlined text-[20px]">person</span>
+    </button>
+    
+    <!-- Dropdown Menu -->
+    <div id="profile-menu" class="hidden absolute right-0 mt-2 w-48 bg-surface rounded-lg shadow-md border border-border-subtle py-1 z-50">
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button type="submit" class="flex items-center w-full px-4 py-2.5 text-label-md text-error hover:bg-error/10 transition-colors font-semibold text-left">
+                <span class="material-symbols-outlined mr-3 text-[18px]">logout</span>
+                <span>Keluar Sistem</span>
+            </button>
+        </form>
+    </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const profileBtn = document.getElementById('profile-btn');
+        const profileMenu = document.getElementById('profile-menu');
+        
+        if (profileBtn && profileMenu) {
+            profileBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                profileMenu.classList.toggle('hidden');
+            });
+            
+            document.addEventListener('click', function(e) {
+                if (!profileBtn.contains(e.target) && !profileMenu.contains(e.target)) {
+                    profileMenu.classList.add('hidden');
+                }
+            });
+        }
+    });
+</script>
 </div>
 </div>
 </header>

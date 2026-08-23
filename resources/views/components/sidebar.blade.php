@@ -2,11 +2,11 @@
 <nav class="bg-sidebar-bg text-secondary-fixed font-body-sm docked fixed-left w-sidebar-width h-full fixed top-0 left-0 z-50 flex flex-col justify-between hidden md:flex transition-all duration-200 ease-in-out">
 <div class="w-full">
 <!-- Header -->
-<div class="h-16 flex items-center px-4 border-b border-surface-tint/20">
-<div class="w-8 h-8 rounded bg-surface-tint flex items-center justify-center mr-3 overflow-hidden text-on-primary">
-<span class="material-symbols-outlined text-[20px]">admin_panel_settings</span>
+<div class="py-6 flex flex-col items-center px-4 border-b border-surface-tint/20">
+<div class="w-16 h-16 flex items-center justify-center mb-3 overflow-hidden">
+    <img src="{{ asset('logo-inspektorat.png') }}" alt="Logo" class="w-full h-full object-contain drop-shadow-md">
 </div>
-<div class="flex flex-col justify-center text-label-lg font-label-lg font-bold text-on-primary">
+<div class="flex flex-col justify-center items-center text-center text-label-lg font-label-lg font-bold text-on-primary">
 <span>INSPEKTORAT</span>
 <span class="text-[10px] text-on-primary-container tracking-wider font-normal">KAB. PUNCAK JAYA</span>
 </div>
@@ -41,15 +41,7 @@
 <span>Pengaturan</span>
 </a>
 
-<div class="mt-auto mb-4 px-4 pt-4 border-t border-outline-variant/30">
-    <form method="POST" action="{{ route('logout') }}">
-        @csrf
-        <button type="submit" class="flex items-center w-full h-[48px] text-error hover:bg-error/10 rounded px-4 transition-all duration-150 font-semibold">
-            <span class="material-symbols-outlined mr-3 text-[20px]">logout</span>
-            <span>Keluar Sistem</span>
-        </button>
-    </form>
-</div>
+
 </div>
 </div>
 <!-- Footer Profile -->

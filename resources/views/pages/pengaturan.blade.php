@@ -115,6 +115,30 @@
                 </form>
             </div>
             
+            <!-- API Documentation & Link -->
+            <div class="bg-surface-container-lowest border border-border-subtle rounded p-4 mt-4">
+                <div class="text-label-sm font-bold text-on-surface mb-2 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[16px] text-primary">link</span>
+                    Endpoint API Utama
+                </div>
+                <div class="flex items-center gap-2 mb-4">
+                    <code class="bg-surface text-primary border border-border-subtle rounded px-3 py-1.5 text-xs font-mono select-all">{{ url('/api/pegawai') }}</code>
+                    <span class="text-[11px] text-on-surface-variant bg-surface-container-high px-2 py-1 rounded">Method: GET</span>
+                </div>
+                
+                <div class="text-label-sm font-bold text-on-surface mb-2 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[16px] text-primary">menu_book</span>
+                    Panduan Penggunaan (Manual)
+                </div>
+                <ul class="list-disc list-inside text-xs text-on-surface-variant space-y-2 ml-1">
+                    <li>Sertakan token aktif pada header request: <br/><code class="bg-surface rounded px-1.5 py-0.5 ml-4 mt-1 inline-block border border-border-subtle text-on-surface font-mono">Authorization: Bearer [TOKEN_ANDA]</code></li>
+                    <li>Sertakan juga header: <code class="bg-surface rounded px-1.5 py-0.5 border border-border-subtle text-on-surface font-mono">Accept: application/json</code></li>
+                    <li>Endpoint ini akan mengembalikan data berupa format JSON yang berisi atribut profil pegawai.</li>
+                    <li>Data sensitif (seperti file lampiran dokumen) secara otomatis dienkripsi/disembunyikan oleh sistem.</li>
+                    <li><strong class="text-status-error">Perhatian:</strong> Jaga kerahasiaan token API. Cabut dan ganti token secara berkala jika dirasa perlu.</li>
+                </ul>
+            </div>
+
             @if(session('api_token'))
             <div class="bg-status-warning/10 border border-status-warning/30 p-4 rounded-lg mt-4">
                 <div class="text-sm font-bold text-status-warning mb-2 flex items-center gap-2">

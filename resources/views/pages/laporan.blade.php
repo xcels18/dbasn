@@ -2,6 +2,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
 
     <!-- Breadcrumbs & Header -->
     <div class="px-margin-desktop pt-8 pb-6 flex flex-col gap-4">
@@ -110,7 +113,7 @@
 
         // Raw Data for Custom Analytics
         $rawPegawaiData = array_map(function($p) {
-            $gol = preg_match('/(IV|III|II|I)/', $p->getPangkatGolongan(), $m) ? 'Golongan '.$m[1] : 'Lainnya';
+            $gol = preg_match('/(IV|III|II|I)\/[a-e]/i', $p->getPangkatGolongan(), $m) ? 'Golongan '.strtoupper($m[1]) : 'Lainnya';
             $u = $p->getUsia();
             $usiaStr = 'Tidak Diketahui';
             if ($u > 0) {
@@ -118,6 +121,17 @@
                 elseif ($u <= 39) $usiaStr = '30-39 Tahun';
                 elseif ($u <= 49) $usiaStr = '40-49 Tahun';
                 else $usiaStr = '>= 50 Tahun';
+            }
+            
+            // Calculate Masa Kerja
+            $mkStr = 'Tidak Diketahui';
+            $mk = $p->getMasaKerja();
+            if ($mk !== 'NIP Tidak Valid' && preg_match('/(\d+)\sTahun/', $mk, $m)) {
+                $tahun = (int)$m[1];
+                if ($tahun <= 5) $mkStr = '0-5 Tahun';
+                elseif ($tahun <= 10) $mkStr = '6-10 Tahun';
+                elseif ($tahun <= 20) $mkStr = '11-20 Tahun';
+                else $mkStr = '> 20 Tahun';
             }
             
             return [
@@ -128,7 +142,11 @@
                 'golongan' => $gol,
                 'agama' => $p->getAgama() ?: 'Tidak Diketahui',
                 'status_jabatan' => $p->getStatusJabatan() ?: 'Tidak Diketahui',
-                'status' => $p->getStatus() ?: 'Tidak Diketahui'
+                'status' => $p->getStatus() ?: 'Tidak Diketahui',
+                'unit_kerja' => $p->getUnitKerja() ?: 'Tidak Diketahui',
+                'jabatan' => $p->getJabatan() ?: 'Tidak Diketahui',
+                'masa_kerja' => $mkStr,
+                'anjab' => $p->isOutOfAnjab() ? 'Di Luar ANJAB' : 'Sesuai ANJAB'
             ];
         }, $pegawaiList);
         $jsonPegawaiData = json_encode($rawPegawaiData);
@@ -234,6 +252,9 @@
             </button>
             <button class="tab-btn px-6 py-3 text-label-md font-medium border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-2" data-target="tab-sebaran-map">
                 <span class="material-symbols-outlined text-[18px]">map</span> Peta Sebaran ASN
+            </button>
+            <button class="tab-btn px-6 py-3 text-label-md font-medium border-b-2 border-transparent text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-2" data-target="tab-custom-analytic">
+                <span class="material-symbols-outlined text-[18px]">query_stats</span> Analitik Kustom
             </button>
         </div>
     </div>
@@ -630,12 +651,313 @@
         </div>
     </div> <!-- End Tab 3 -->
 
+        <!-- Tab 4: Analisis Demografi ASN -->
+        <div id="tab-custom-analytic" class="tab-content hidden animate-fade-in pb-margin-desktop px-margin-desktop h-full space-y-6">
+            <div class="bg-surface-card border border-border-subtle rounded-xl p-6 shadow-sm min-h-[500px]">
+                <h2 class="text-title-lg font-bold text-primary mb-2">Analisis Multi-Variabel Kustom & Grafik</h2>
+                <p class="text-body-sm text-on-surface-variant mb-6">Pilih hingga tiga variabel untuk mengelompokkan data ASN, dan visualisasikan hasilnya secara instan.</p>
+                
+                <div class="flex flex-col xl:flex-row xl:items-end justify-between gap-4 mb-6 bg-surface-container-lowest p-4 rounded-lg border border-border-subtle">
+                    <div class="flex flex-wrap items-end gap-3 flex-1">
+                        <div>
+                            <label class="block text-label-sm font-bold text-on-surface mb-1">Grup Utama (Baris)</label>
+                            <select id="ca-group-1" class="w-40 bg-white border border-border-subtle rounded-md px-2 py-1.5 text-body-sm outline-none focus:border-primary">
+                                <option value="unit_kerja">Unit Kerja / OPD</option>
+                                <option value="jabatan">Jabatan</option>
+                                <option value="golongan" selected>Pangkat/Golongan</option>
+                                <option value="pendidikan">Pendidikan Terakhir</option>
+                                <option value="masa_kerja">Masa Kerja</option>
+                                <option value="usia">Rentang Usia</option>
+                                <option value="jenis_kelamin">Jenis Kelamin</option>
+                                <option value="agama">Agama</option>
+                                <option value="status">Status Pegawai</option>
+                                <option value="status_jabatan">Status Jabatan</option>
+                                <option value="anjab">Kesesuaian ANJAB</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-label-sm font-bold text-on-surface mb-1">Sub-Grup (Baris)</label>
+                            <select id="ca-group-2" class="w-40 bg-white border border-border-subtle rounded-md px-2 py-1.5 text-body-sm outline-none focus:border-primary">
+                                <option value="none">-- Tanpa Sub-Grup --</option>
+                                <option value="unit_kerja">Unit Kerja / OPD</option>
+                                <option value="jabatan">Jabatan</option>
+                                <option value="golongan">Pangkat/Golongan</option>
+                                <option value="pendidikan">Pendidikan Terakhir</option>
+                                <option value="masa_kerja">Masa Kerja</option>
+                                <option value="usia">Rentang Usia</option>
+                                <option value="jenis_kelamin">Jenis Kelamin</option>
+                                <option value="agama">Agama</option>
+                                <option value="status">Status Pegawai</option>
+                                <option value="status_jabatan">Status Jabatan</option>
+                                <option value="anjab">Kesesuaian ANJAB</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-label-sm font-bold text-on-surface mb-1">Grup Silang (Kolom)</label>
+                            <select id="ca-group-3" class="w-40 bg-white border border-border-subtle rounded-md px-2 py-1.5 text-body-sm outline-none focus:border-primary">
+                                <option value="none">-- Tanpa Kolom --</option>
+                                <option value="unit_kerja">Unit Kerja / OPD</option>
+                                <option value="jabatan">Jabatan</option>
+                                <option value="golongan">Pangkat/Golongan</option>
+                                <option value="pendidikan">Pendidikan Terakhir</option>
+                                <option value="masa_kerja">Masa Kerja</option>
+                                <option value="usia">Rentang Usia</option>
+                                <option value="jenis_kelamin" selected>Jenis Kelamin</option>
+                                <option value="agama">Agama</option>
+                                <option value="status">Status Pegawai</option>
+                                <option value="status_jabatan">Status Jabatan</option>
+                                <option value="anjab">Kesesuaian ANJAB</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-label-sm font-bold text-on-surface mb-1">Tipe Grafik</label>
+                            <select id="ca-chart-type" class="w-32 bg-white border border-border-subtle rounded-md px-2 py-1.5 text-body-sm outline-none focus:border-primary">
+                                <option value="bar">Bar Chart</option>
+                                <option value="line">Line Chart</option>
+                                <option value="doughnut">Doughnut</option>
+                            </select>
+                        </div>
+                    </div>
+    
+                    <div class="flex items-center gap-2 mt-4 xl:mt-0">
+                        <button id="btn-analyze" class="bg-primary text-on-primary text-[13px] font-bold px-4 py-1.5 rounded border border-transparent hover:bg-primary/90 transition-colors flex items-center gap-1 shadow-sm">
+                            <span class="material-symbols-outlined text-[16px]">play_arrow</span> Analisis
+                        </button>
+                        <button id="btn-export-excel" class="bg-white text-emerald-600 text-[13px] font-bold px-3 py-1.5 rounded border border-emerald-600 hover:bg-emerald-50 transition-colors flex items-center gap-1 shadow-sm hidden">
+                            <span class="material-symbols-outlined text-[16px]">download</span> Excel
+                        </button>
+                        <button id="btn-export-chart" class="bg-white text-indigo-600 text-[13px] font-bold px-3 py-1.5 rounded border border-indigo-600 hover:bg-indigo-50 transition-colors flex items-center gap-1 shadow-sm hidden">
+                            <span class="material-symbols-outlined text-[16px]">image</span> Grafik
+                        </button>
+                    </div>
+                </div>
+    
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <!-- Chart Area -->
+                    <div class="bg-surface border border-border-subtle rounded-lg p-4 flex flex-col justify-center min-h-[350px]">
+                        <canvas id="customAnalyticChart" class="w-full h-full"></canvas>
+                    </div>
+                    <!-- Table Area -->
+                    <div id="ca-result-container" class="w-full overflow-x-auto">
+                        <!-- Result table injected here -->
+                    </div>
+                </div>
+            </div>
+        </div> <!-- End Tab 4 -->
+
     <!-- Script for Tabs & Custom Analytics -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Tab Switching Logic
             const tabBtns = document.querySelectorAll('.tab-btn');
             const tabContents = document.querySelectorAll('.tab-content');
+
+            // --- CUSTOM ANALYTIC SCRIPT ---
+            const rawPegawaiData = {!! $jsonPegawaiData !!};
+
+            const btnAnalyze = document.getElementById('btn-analyze');
+            const selectG1 = document.getElementById('ca-group-1');
+            const selectG2 = document.getElementById('ca-group-2');
+            const selectG3 = document.getElementById('ca-group-3');
+            const selectChart = document.getElementById('ca-chart-type');
+            const resultContainer = document.getElementById('ca-result-container');
+            let customChartInstance = null;
+
+            function renderCustomAnalytic() {
+                if (!rawPegawaiData || rawPegawaiData.length === 0) return;
+                
+                const g1 = selectG1.value;
+                const g1Text = selectG1.options[selectG1.selectedIndex].text;
+                const g2 = selectG2.value;
+                const g3 = selectG3.value;
+                const chartType = selectChart.value;
+                const total = rawPegawaiData.length;
+                
+                // Grouping Logic
+                const grouped = {};
+                const columns = new Set();
+                
+                rawPegawaiData.forEach(p => {
+                    let val1 = p[g1] || 'Tidak Diketahui';
+                    if (g2 !== 'none') {
+                        // Kombinasi 2 variabel baris
+                        val1 += ' — ' + (p[g2] || 'Tidak Diketahui');
+                    }
+                    
+                    const valCol = g3 !== 'none' ? (p[g3] || 'Tidak Diketahui') : 'Total';
+                    
+                    if (!grouped[val1]) grouped[val1] = {};
+                    if (!grouped[val1][valCol]) grouped[val1][valCol] = 0;
+                    
+                    grouped[val1][valCol]++;
+                    if (g3 !== 'none') columns.add(valCol);
+                });
+                
+                // Build HTML Table using Tailwind
+                let html = '<div class="overflow-x-auto border border-border-subtle rounded-lg shadow-sm w-full"><table class="w-full text-left border-collapse whitespace-nowrap">';
+                
+                // Header
+                html += '<thead class="bg-surface-container-high border-b border-border-subtle">';
+                html += '<tr><th class="px-4 py-3 text-label-sm font-bold text-on-surface uppercase tracking-wider">' + g1Text + (g2 !== 'none' ? ' & ' + selectG2.options[selectG2.selectedIndex].text : '') + '</th>';
+                
+                let colArray = Array.from(columns).sort();
+                if (g3 !== 'none') {
+                    colArray.forEach(c => {
+                        html += '<th class="px-4 py-3 text-label-sm font-bold text-on-surface text-right">' + c.toUpperCase() + '</th>';
+                    });
+                }
+                html += '<th class="px-4 py-3 text-label-sm font-bold text-primary text-right uppercase tracking-wider">TOTAL</th>';
+                html += '</tr></thead><tbody>';
+                
+                // Body
+                const rowKeys = Object.keys(grouped).sort();
+                let grandTotal = 0;
+                
+                rowKeys.forEach(r => {
+                    html += '<tr class="border-b border-border-subtle hover:bg-surface-container-lowest transition-colors">';
+                    html += '<td class="px-4 py-3 text-body-sm font-bold text-on-surface">' + r + '</td>';
+                    
+                    let rowTotal = 0;
+                    if (g3 !== 'none') {
+                        colArray.forEach(c => {
+                            const count = grouped[r][c] || 0;
+                            rowTotal += count;
+                            html += '<td class="px-4 py-3 text-body-sm text-on-surface-variant text-right">' + (count > 0 ? count : '<span class="text-outline/40">-</span>') + '</td>';
+                        });
+                    } else {
+                        rowTotal = grouped[r]['Total'] || 0;
+                    }
+                    
+                    grandTotal += rowTotal;
+                    html += '<td class="px-4 py-3 text-body-sm font-bold text-primary text-right">' + rowTotal + ' <span class="text-[10px] text-outline font-normal ml-1">(' + Math.round((rowTotal/total)*100) + '%)</span></td>';
+                    html += '</tr>';
+                });
+                
+                // Footer
+                html += '<tr class="bg-surface-container-high border-t-2 border-border-subtle">';
+                html += '<td class="px-4 py-3 text-label-sm font-bold text-primary">GRAND TOTAL</td>';
+                
+                if (g3 !== 'none') {
+                    colArray.forEach(c => {
+                        let colTotal = 0;
+                        rowKeys.forEach(r => { colTotal += (grouped[r][c] || 0); });
+                        html += '<td class="px-4 py-3 text-label-sm font-bold text-primary text-right">' + colTotal + '</td>';
+                    });
+                }
+                
+                html += '<td class="px-4 py-3 text-label-sm font-bold text-primary text-right">' + grandTotal + ' <span class="text-[10px] text-primary/70 font-normal ml-1">(100%)</span></td>';
+                html += '</tr>';
+                html += '</tbody></table></div>';
+                resultContainer.innerHTML = html;
+
+                // Build Chart
+                const chartLabels = rowKeys;
+                const chartDatasets = [];
+                const colorPalette = ['#0ea5e9', '#22c55e', '#f59e0b', '#ec4899', '#8b5cf6', '#14b8a6', '#f43f5e', '#eab308', '#64748b', '#3b82f6'];
+                
+                if (g3 !== 'none') {
+                    colArray.forEach((c, index) => {
+                        const data = rowKeys.map(r => grouped[r][c] || 0);
+                        chartDatasets.push({
+                            label: c,
+                            data: data,
+                            backgroundColor: chartType === 'line' ? 'transparent' : colorPalette[index % colorPalette.length],
+                            borderColor: colorPalette[index % colorPalette.length],
+                            borderWidth: 2,
+                            tension: 0.3,
+                            fill: false
+                        });
+                    });
+                } else {
+                    const data = rowKeys.map(r => grouped[r]['Total'] || 0);
+                    chartDatasets.push({
+                        label: 'Total ASN',
+                        data: data,
+                        backgroundColor: chartType === 'doughnut' ? colorPalette.slice(0, data.length) : colorPalette[0],
+                        borderColor: chartType === 'doughnut' ? '#fff' : colorPalette[0],
+                        borderWidth: 2
+                    });
+                }
+
+                const ctx = document.getElementById('customAnalyticChart').getContext('2d');
+                if (customChartInstance) {
+                    customChartInstance.destroy();
+                }
+
+                customChartInstance = new Chart(ctx, {
+                    type: chartType,
+                    data: {
+                        labels: chartLabels,
+                        datasets: chartDatasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: chartType === 'doughnut' ? 'right' : 'bottom',
+                                labels: { font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" } }
+                            }
+                        },
+                        scales: (chartType !== 'doughnut' && chartType !== 'pie') ? {
+                            y: { 
+                                beginAtZero: true, 
+                                stacked: g3 !== 'none' && chartType === 'bar',
+                                ticks: { font: { family: "'Plus Jakarta Sans', sans-serif" } }
+                            },
+                            x: { 
+                                stacked: g3 !== 'none' && chartType === 'bar',
+                                ticks: { font: { family: "'Plus Jakarta Sans', sans-serif" } }
+                            }
+                        } : {}
+                    }
+                });
+
+                // Show export buttons after first render
+                document.getElementById('btn-export-excel').classList.remove('hidden');
+                document.getElementById('btn-export-chart').classList.remove('hidden');
+            }
+
+            if (btnAnalyze) {
+                btnAnalyze.addEventListener('click', renderCustomAnalytic);
+                // Initial render
+                renderCustomAnalytic();
+            }
+
+            // Export to Excel Logic (SheetJS)
+            const btnExportExcel = document.getElementById('btn-export-excel');
+            if (btnExportExcel) {
+                btnExportExcel.addEventListener('click', function() {
+                    const table = document.querySelector('#ca-result-container table');
+                    if (!table) return alert('Tabel tidak ditemukan!');
+                    
+                    const wb = XLSX.utils.table_to_book(table, {sheet: "Data Analitik"});
+                    XLSX.writeFile(wb, "Analitik_Demografi_ASN.xlsx");
+                });
+            }
+
+            // Export Chart to PNG Logic
+            const btnExportChart = document.getElementById('btn-export-chart');
+            if (btnExportChart) {
+                btnExportChart.addEventListener('click', function() {
+                    const canvas = document.getElementById('customAnalyticChart');
+                    if (!canvas) return alert('Grafik tidak ditemukan!');
+                    
+                    // Create a temporary link
+                    const link = document.createElement('a');
+                    link.download = 'Grafik_Analitik_ASN.png';
+                    // We need a white background for transparent charts before downloading
+                    const ctx = canvas.getContext('2d');
+                    ctx.save();
+                    ctx.globalCompositeOperation = 'destination-over';
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    ctx.restore();
+                });
+            }
 
             tabBtns.forEach(btn => {
                 btn.addEventListener('click', () => {
