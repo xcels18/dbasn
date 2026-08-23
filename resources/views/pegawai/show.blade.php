@@ -437,10 +437,7 @@
             </div>
         </div>
 
-                                <td class="py-3 px-4">Inspektur Kabupaten Puncak Jaya</td>
-                            </tr>
-                        </tbody>
-                    </table>
+
                 </div>
             </div>
         </div>
